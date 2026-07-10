@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Robot Sentiment Chatbot</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <!-- Font Google untuk kesan robot/cyber -->
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Plus+Jakarta+Sans:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background: radial-gradient(circle at center, #0f172a 0%, #020617 100%);
+        }
+        .robot-font {
+            font-family: 'Share Tech Mono', monospace;
+        }
+        .glow-cyan {
+            box-shadow: 0 0 20px rgba(6, 182, 212, 0.15);
+        }
+        .glow-border:focus {
+            box-shadow: 0 0 15px rgba(6, 182, 212, 0.5);
+        }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #020617; }
+        ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 10px; }
+    </style>
+</head>
+<body class="h-screen flex flex-col justify-between text-slate-100 overflow-hidden">
+
+    <!-- Top Header -->
+    <header class="border-b border-cyan-500/20 bg-slate-950/60 backdrop-blur-md px-6 py-4 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+            <div class="relative flex h-3 w-3">
+                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+                <span class="relative inline-flex rounded-full h-3 w-3 bg-cyan-500"></span>
+            </div>
+            <h1 class="text-xl font-bold tracking-wider text-cyan-400 robot-font">ChatBot Nopal</h1>
+        </div>
+        <span class="text-xs bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 px-3 py-1 rounded-full robot-font">ANALISIS SENTIMEN CHAT-GPT</span>
+    </header>
+
+    <!-- Chat Area -->
+    <main id="chat-box" class="flex-1 overflow-y-auto p-6 space-y-6 max-w-4xl w-full mx-auto">
+        <!-- Bot Welcome Message -->
+        <div class="flex items-start gap-4">
+            <div class="w-10 h-10 rounded-xl bg-cyan-950 border border-cyan-500/30 flex items-center justify-center text-cyan-400 text-xl shadow-[0_0_10px_rgba(6,182,212,0.2)]">
+                🤖
+            </div>
+            <div class="bg-slate-900/80 border border-slate-800 p-4 rounded-2xl rounded-tl-none max-w-[80%] text-slate-300 shadow-md">
+                <p class="robot-font text-cyan-400 text-xs mb-1">[SYSTEM INITIALIZED]</p>
+                Halo! Masukkan teks tanggapan mengenai ChatGPT, saya akan menganalisis sentimen, memberikan alasan, dan tanggapan robotik untukmu.
+            </div>
+        </div>
+    </main>
+
+    <!-- Input Box Area -->
+    <footer class="p-6 bg-slate-950/40 backdrop-blur-md border-t border-slate-900">
+        <div class="max-w-4xl mx-auto relative flex items-center">
+            <input type="text" id="user-input" placeholder="Ketik sesuatu di sini..." 
+                class="w-full bg-slate-900/90 border border-slate-800 rounded-2xl py-4 pl-5 pr-16 text-slate-200 placeholder-slate-500 focus:outline-none focus:border-cyan-500/50 glow-border transition-all duration-300">
+            <button onclick="sendMessage()" 
+                class="absolute right-3 bg-cyan-600 hover:bg-cyan-500 text-slate-950 font-bold p-2.5 rounded-xl transition-all duration-200 flex items-center justify-center shadow-lg hover:shadow-cyan-500/20">
+                <!-- Icon Send -->
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-5 h-5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />
+                </svg>
+            </button>
+        </div>
+    </footer>
+
+    <!-- Logic JavaScript -->
+    <script>
+        const userInput = document.getElementById('user-input');
+        const chatBox = document.getElementById('chat-box');
+
+        // Deteksi tombol enter
+        userInput.addEventListener("keyup", function(event) {
+            if (event.key === "Enter") {
+                sendMessage();
+            }
+        });
+
+        function sendMessage() {
+            const text = userInput.value.trim();
+            if (!text) return;
+
+            // 1. Tampilkan pesan user ke layar
+            appendMessage(text, 'user');
+            userInput.value = '';
+
+            // 2. Efek Loading ala Robot
+            const loadingId = appendMessage('<span class="animate-pulse text-cyan-500 robot-font">[ANALYZING_DATA...]</span>', 'bot-loading');
+
+            // 3. Tembak data ke backend Flask
+            fetch('/get_response', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: text })
+            })
+            .then(res => res.json())
+            .then(data => {
+                // Hapus loading, ganti jawaban asli
+                document.getElementById(loadingId).remove();
+                appendMessage(data.reply, 'bot');
+            })
+            .catch(err => {
+                document.getElementById(loadingId).remove();
+                appendMessage("Terjadi kesalahan jaringan sistem.", 'bot');
+            });
+        }
+
+        function appendMessage(text, sender) {
+            const id = 'msg-' + Math.random().toString(36).substr(2, 9);
+            const msgDiv = document.createElement('div');
+            msgDiv.id = id;
+            msgDiv.className = `flex items-start gap-4 ${sender === 'user' ? 'flex-row-reverse animate-fade-in' : ''}`;
+
+            if (sender === 'user') {
+                msgDiv.innerHTML = `
+                    <div class="w-10 h-10 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-300 text-sm font-bold">U</div>
+                    <div class="bg-cyan-600 text-slate-950 p-4 rounded-2xl rounded-tr-none max-w-[80%] font-medium">${text}</div>
+                `;
+            } else {
+                msgDiv.innerHTML = `
+                    <div class="w-10 h-10 rounded-xl bg-cyan-950 border border-cyan-500/30 flex items-center justify-center text-cyan-400 text-xl">🤖</div>
+                    <div class="bg-slate-900/80 border border-slate-800 p-4 rounded-2xl rounded-tl-none max-w-[80%] text-slate-300 shadow-md">
+                        <p class="robot-font text-cyan-400 text-xs mb-1">${sender === 'bot-loading' ? '[PROCESSING]' : '[OUTPUT_SUCCESS]'}</p>
+                        <div>${text}</div>
+                    </div>
+                `;
+            }
+
+            chatBox.appendChild(msgDiv);
+            chatBox.scrollTop = chatBox.scrollHeight;
+            return id;
+        }
+    </script>
+</body>
+</html>
